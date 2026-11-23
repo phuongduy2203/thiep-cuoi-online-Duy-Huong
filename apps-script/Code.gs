@@ -2,6 +2,7 @@
 // Cách dùng: tạo Google Sheet mới -> Tiện ích mở rộng -> Apps Script -> dán file này -> Triển khai
 // -> Ứng dụng web (Thực thi bằng: Tôi; Quyền truy cập: Bất kỳ ai) -> sao chép URL /exec vào CONFIG.wishApi trong index.html.
 const SHEET_NAME = 'LoiChuc';
+const RSVP_SHEET_NAME = 'XacNhan';
 const MAX_NAME = 80;
 const MAX_MESSAGE = 1000;
 const SHOW_LAST = 50;
@@ -12,6 +13,17 @@ function getSheet_() {
   if (!sh) {
     sh = ss.insertSheet(SHEET_NAME);
     sh.appendRow(['Thời gian', 'Tên', 'Lời chúc']);
+    sh.setFrozenRows(1);
+  }
+  return sh;
+}
+
+function getRsvpSheet_() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sh = ss.getSheetByName(RSVP_SHEET_NAME);
+  if (!sh) {
+    sh = ss.insertSheet(RSVP_SHEET_NAME);
+    sh.appendRow(['Thời gian', 'Tên', 'Tham dự', 'Số người']);
     sh.setFrozenRows(1);
   }
   return sh;
@@ -31,12 +43,23 @@ function doPost(e) {
   try {
     const d = JSON.parse(e.postData.contents);
     const name = safe_(d.name).slice(0, MAX_NAME);
-    const message = safe_(d.message).slice(0, MAX_MESSAGE);
-    if (!name || !message) return json_({ ok: false, error: 'missing' });
+    let row, sheet;
+    if (d.type === 'rsvp') {
+      const guests = Math.max(0, Math.min(50, parseInt(d.guests, 10) || 0));
+      const attendance = d.attendance === 'Không tham dự' ? 'Không tham dự' : 'Có tham dự';
+      if (!name) return json_({ ok: false, error: 'missing' });
+      sheet = getRsvpSheet_();
+      row = [new Date(), name, attendance, guests];
+    } else {
+      const message = safe_(d.message).slice(0, MAX_MESSAGE);
+      if (!name || !message) return json_({ ok: false, error: 'missing' });
+      sheet = getSheet_();
+      row = [new Date(), name, message];
+    }
     const lock = LockService.getScriptLock();
     lock.waitLock(10000);
     try {
-      getSheet_().appendRow([new Date(), name, message]);
+      sheet.appendRow(row);
     } finally {
       lock.releaseLock();
     }

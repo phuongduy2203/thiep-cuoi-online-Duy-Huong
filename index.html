@@ -434,7 +434,7 @@ h1,h2,h3,p{margin:0}
 <select name="attendance"><option value="Có tham dự">Mình sẽ tham dự</option><option value="Không tham dự">Rất tiếc, mình không thể tham dự</option></select>
 <label>Số người tham dự</label><input type="number" name="guests" min="0" max="20" value="1">
 <button class="btn" type="submit">Gửi xác nhận</button>
-<p class="note">Bản demo: nội dung chỉ lưu trên thiết bị này.</p>
+<p class="note" id="rsvpNote">Bản demo: nội dung chỉ lưu trên thiết bị này.</p>
 </form>
 </div>
 
@@ -606,11 +606,17 @@ document.querySelectorAll('.reveal').forEach(el=>observer.observe(el));
 
 // Form
 const store=(k,v)=>{const d=JSON.parse(localStorage.getItem(k)||'[]');d.push(v);localStorage.setItem(k,JSON.stringify(d))};
-$('rsvpForm').addEventListener('submit',e=>{e.preventDefault();store('weddingRSVP',Object.fromEntries(new FormData(e.target)));alert('Đã lưu xác nhận trên thiết bị này. Cảm ơn bạn!');e.target.reset()});
+$('rsvpForm').addEventListener('submit',async e=>{e.preventDefault();const form=e.target,data=Object.fromEntries(new FormData(form));
+if(!CONFIG.wishApi){store('weddingRSVP',data);alert('Đã lưu xác nhận trên thiết bị này. Cảm ơn bạn!');form.reset();return}
+const btn=form.querySelector('button[type=submit]');btn.disabled=true;
+try{const r=await fetch(CONFIG.wishApi,{method:'POST',body:JSON.stringify({type:'rsvp',...data})});const j=await r.json();
+if(!j.ok)throw new Error(j.error);alert('Đã gửi xác nhận tham dự. Cảm ơn bạn!');form.reset()}
+catch(err){alert('Chưa gửi được xác nhận, bạn vui lòng thử lại sau nhé.')}
+btn.disabled=false});
 function renderWishes(list){$('wishList').replaceChildren(...list.map(w=>{const div=document.createElement('div');div.className='wish';const b=document.createElement('b');b.textContent=w.name;const p=document.createElement('p');p.textContent=w.message;div.append(b,p);if(w.time){const t=document.createElement('time');const d=new Date(String(w.time).replace(/\s*\(.*\)$/,''));if(!isNaN(d))t.textContent=d.toLocaleString('vi-VN');div.appendChild(t)}return div}))}
 let wishes=[];
 if(CONFIG.wishApi){
-$('wishNote').textContent='Lời chúc của bạn sẽ được gửi tới cô dâu và chú rể.';
+$('wishNote').textContent='Lời chúc của bạn sẽ được gửi tới cô dâu và chú rể.';$('rsvpNote').textContent='Xác nhận của bạn sẽ được gửi tới cô dâu và chú rể.';
 fetch(CONFIG.wishApi).then(r=>r.json()).then(j=>{if(j.ok){wishes=j.wishes.concat(wishes.filter(w=>w.local));renderWishes(wishes)}}).catch(()=>{});
 }else{
 wishes=JSON.parse(localStorage.getItem('weddingWishes')||'[]').slice(-10).reverse();renderWishes(wishes);
