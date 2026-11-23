@@ -458,7 +458,7 @@ h1,h2,h3,p{margin:0}
 <button class="btn dark" type="submit">Gửi lời chúc</button>
 </form>
 <div class="wish-list" id="wishList"></div>
-<p class="note" style="color:var(--muted)">Bản demo: lời chúc chỉ lưu trên trình duyệt này.</p>
+<p class="note" id="wishNote" style="color:var(--muted)">Bản demo: lời chúc chỉ lưu trên trình duyệt này.</p>
 </div>
 
 </section>
@@ -490,7 +490,9 @@ gifts:[{who:'Mừng cưới cô dâu',bank:'VietinBank',no:'100878196420',name:'
 // qr: đường dẫn ảnh QR; hoặc điền bankCode (vd 'VCB','MB','TCB') để tự tạo QR VietQR
 brideMap:{lat:21.182340,lng:106.206277,url:'https://maps.app.goo.gl/kqtTXXuhcGMseAbG6'},
 groomMap:{lat:21.434858,lng:105.384969,url:'https://maps.app.goo.gl/CVeqZWCRkW9uF3gS9'},
-venueName:'Nhà gái - Yên Tập Bến, Yên Dũng, Bắc Ninh',musicUrl:'music/50-nam-ve-sau.mp3'};
+venueName:'Nhà gái - Yên Tập Bến, Yên Dũng, Bắc Ninh',musicUrl:'music/50-nam-ve-sau.mp3',
+// wishApi: URL web app Google Apps Script (xem apps-script/Code.gs) để lưu lời chúc vào Google Sheets; để trống thì chỉ lưu trên trình duyệt
+wishApi:''};
 
 const $=id=>document.getElementById(id);
 const dt=new Date(CONFIG.date);
@@ -605,9 +607,18 @@ document.querySelectorAll('.reveal').forEach(el=>observer.observe(el));
 // Form
 const store=(k,v)=>{const d=JSON.parse(localStorage.getItem(k)||'[]');d.push(v);localStorage.setItem(k,JSON.stringify(d))};
 $('rsvpForm').addEventListener('submit',e=>{e.preventDefault();store('weddingRSVP',Object.fromEntries(new FormData(e.target)));alert('Đã lưu xác nhận trên thiết bị này. Cảm ơn bạn!');e.target.reset()});
-function renderWishes(){const data=JSON.parse(localStorage.getItem('weddingWishes')||'[]');$('wishList').replaceChildren(...data.slice(-10).reverse().map(w=>{const div=document.createElement('div');div.className='wish';const b=document.createElement('b');b.textContent=w.name;const p=document.createElement('p');p.textContent=w.message;div.append(b,p);return div}))}
-renderWishes();
-$('wishForm').addEventListener('submit',e=>{e.preventDefault();store('weddingWishes',Object.fromEntries(new FormData(e.target)));renderWishes();e.target.reset()});
+function renderWishes(list){$('wishList').replaceChildren(...list.map(w=>{const div=document.createElement('div');div.className='wish';const b=document.createElement('b');b.textContent=w.name;const p=document.createElement('p');p.textContent=w.message;div.append(b,p);if(w.time){const t=document.createElement('time');const d=new Date(w.time);if(!isNaN(d))t.textContent=d.toLocaleString('vi-VN');div.appendChild(t)}return div}))}
+let wishes=[];
+if(CONFIG.wishApi){
+$('wishNote').textContent='Lời chúc của bạn sẽ được gửi tới cô dâu và chú rể.';
+fetch(CONFIG.wishApi).then(r=>r.json()).then(j=>{if(j.ok){wishes=j.wishes.concat(wishes.filter(w=>w.local));renderWishes(wishes)}}).catch(()=>{});
+}else{
+wishes=JSON.parse(localStorage.getItem('weddingWishes')||'[]').slice(-10).reverse();renderWishes(wishes);
+}
+$('wishForm').addEventListener('submit',e=>{e.preventDefault();const w=Object.fromEntries(new FormData(e.target));
+wishes.unshift({...w,time:new Date().toISOString(),local:true});renderWishes(wishes);
+if(CONFIG.wishApi){fetch(CONFIG.wishApi,{method:'POST',body:JSON.stringify(w)}).catch(()=>{})}else store('weddingWishes',w);
+e.target.reset()});
 </script>
 </body>
 </html>
