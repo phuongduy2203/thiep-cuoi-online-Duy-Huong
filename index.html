@@ -492,7 +492,7 @@ brideMap:{lat:21.182340,lng:106.206277,url:'https://maps.app.goo.gl/kqtTXXuhcGMs
 groomMap:{lat:21.434858,lng:105.384969,url:'https://maps.app.goo.gl/CVeqZWCRkW9uF3gS9'},
 venueName:'Nhà gái - Yên Tập Bến, Yên Dũng, Bắc Ninh',musicUrl:'music/50-nam-ve-sau.mp3',
 // wishApi: URL web app Google Apps Script (xem apps-script/Code.gs) để lưu lời chúc vào Google Sheets; để trống thì chỉ lưu trên trình duyệt
-wishApi:''};
+wishApi:'https://script.google.com/macros/s/AKfycbx8ZYCPXZ1MpmvIH4m46wOADMYxbwdLPDhS2PhAAJCyWjMVYbpm2FyMmVmcOAbbYr2koQ/exec'};
 
 const $=id=>document.getElementById(id);
 const dt=new Date(CONFIG.date);
@@ -607,7 +607,7 @@ document.querySelectorAll('.reveal').forEach(el=>observer.observe(el));
 // Form
 const store=(k,v)=>{const d=JSON.parse(localStorage.getItem(k)||'[]');d.push(v);localStorage.setItem(k,JSON.stringify(d))};
 $('rsvpForm').addEventListener('submit',e=>{e.preventDefault();store('weddingRSVP',Object.fromEntries(new FormData(e.target)));alert('Đã lưu xác nhận trên thiết bị này. Cảm ơn bạn!');e.target.reset()});
-function renderWishes(list){$('wishList').replaceChildren(...list.map(w=>{const div=document.createElement('div');div.className='wish';const b=document.createElement('b');b.textContent=w.name;const p=document.createElement('p');p.textContent=w.message;div.append(b,p);if(w.time){const t=document.createElement('time');const d=new Date(w.time);if(!isNaN(d))t.textContent=d.toLocaleString('vi-VN');div.appendChild(t)}return div}))}
+function renderWishes(list){$('wishList').replaceChildren(...list.map(w=>{const div=document.createElement('div');div.className='wish';const b=document.createElement('b');b.textContent=w.name;const p=document.createElement('p');p.textContent=w.message;div.append(b,p);if(w.time){const t=document.createElement('time');const d=new Date(String(w.time).replace(/\s*\(.*\)$/,''));if(!isNaN(d))t.textContent=d.toLocaleString('vi-VN');div.appendChild(t)}return div}))}
 let wishes=[];
 if(CONFIG.wishApi){
 $('wishNote').textContent='Lời chúc của bạn sẽ được gửi tới cô dâu và chú rể.';
